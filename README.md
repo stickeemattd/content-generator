@@ -1,36 +1,120 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Content Generator
 
-## Getting Started
+This project converts Microsoft Word `.docx` files into Laravel Blade content templates.
 
-First, run the development server:
+It is built for a workflow where content is drafted in Word, uploaded through a small web UI, and downloaded as a `.blade.php` file that fits an existing Blade page structure.
+
+## What It Does
+
+The app:
+
+- accepts a `.docx` upload in the browser
+- parses the document structure on the server
+- converts paragraphs into Blade-friendly HTML
+- groups Word lists into `<ul>` or `<ol>`
+- converts Word tables into a predefined Tailwind-based table layout
+- wraps the output in a Blade template using:
+
+```php
+@extends('gocompare.templates.app')
+
+@section('content')
+    <section class="standard-page">
+        <div>
+            <!-- generated content -->
+        </div>
+    </section>
+@endsection
+```
+
+## How To Use It
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Start the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+3. Open `http://localhost:3000`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+4. Upload a Word `.docx` file
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+5. Enter the output filename you want
 
-## Learn More
+6. Click `Convert & Download`
 
-To learn more about Next.js, take a look at the following resources:
+The app will download a generated file named like `your-filename.blade.php`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## How Conversion Works
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The converter reads the `.docx` XML directly and turns the document into block-level content.
 
-## Deploy on Vercel
+Current behavior:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- paragraphs become `<p>`
+- larger paragraph font sizes are mapped to headings:
+  - `16px+` becomes `<h2>`
+  - `14px+` becomes `<h3>`
+  - `12px+` becomes `<h4>`
+- numbered lists become `<ol>`
+- bulleted lists become `<ul>`
+- tables are rendered into a fixed responsive `<div>` grid layout with Tailwind classes
+- hyperlink text is preserved as `<a href="">...</a>`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Important Limitations
+
+This README is based on the current implementation, so these limitations are worth knowing before you use it heavily:
+
+- only `.docx` files are supported
+- link text is preserved, but link URLs are not currently carried through; generated links use empty `href` values
+- inline formatting such as bold, italic, underline, and custom classes is not preserved
+- heading detection is based on font size, not Word heading styles alone
+- table output is opinionated and tailored to one Blade/Tailwind markup style
+- the generated file should be reviewed before committing to production
+
+## Typical Use Case
+
+This is useful when a content team writes article copy in Word, but the engineering or publishing workflow needs that content delivered as Blade markup inside a consistent Laravel page template.
+
+Instead of manually rebuilding headings, paragraphs, lists, and tables by hand, this tool gives you a structured first pass that can then be cleaned up or enhanced.
+
+## Project Structure
+
+- [`app/page.tsx`](/home/matt/Public/code/comparisondev/content-generator/app/page.tsx) provides the upload UI
+- [`app/api/convert/route.ts`](/home/matt/Public/code/comparisondev/content-generator/app/api/convert/route.ts) handles the conversion request
+- [`app/lib/docx-parser.ts`](/home/matt/Public/code/comparisondev/content-generator/app/lib/docx-parser.ts) parses the Word document into blocks
+- [`app/lib/blade-generator.ts`](/home/matt/Public/code/comparisondev/content-generator/app/lib/blade-generator.ts) renders parsed blocks into Blade-compatible output
+- [`app/example-files`](/home/matt/Public/code/comparisondev/content-generator/app/example-files) contains example Blade files
+
+## Scripts
+
+```bash
+npm run dev
+npm run build
+npm run start
+npm run lint
+```
+
+## Tech Stack
+
+- Next.js
+- React
+- TypeScript
+- `jszip` for reading `.docx` archives
+- `@xmldom/xmldom` for parsing Word XML
+
+## Notes For Future Improvement
+
+Useful next steps if this project grows:
+
+- preserve real hyperlink destinations
+- support more Word formatting
+- make the Blade wrapper configurable
+- add automated tests for sample `.docx` inputs
+- support custom output templates per content type

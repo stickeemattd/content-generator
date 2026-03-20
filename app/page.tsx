@@ -1,64 +1,174 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useRef } from 'react';
 
 export default function Home() {
+  const [file, setFile] = useState<File | null>(null);
+  const [filename, setFilename] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0] ?? null;
+    setFile(selected);
+    setError(null);
+    if (selected && !filename) {
+      setFilename(selected.name.replace(/\.docx$/i, ''));
+    }
+  };
+
+  const handleConvert = async () => {
+    if (!file) {
+      setError('Please select a .docx file.');
+      return;
+    }
+    if (!filename.trim()) {
+      setError('Please enter an output filename.');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('filename', filename.trim());
+
+      const res = await fetch('/api/convert', { method: 'POST', body: formData });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error ?? 'Conversion failed.');
+        return;
+      }
+
+      const blob = new Blob([data.content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${filename.trim()}.blade.php`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    const dropped = e.dataTransfer.files[0];
+    if (dropped?.name.endsWith('.docx')) {
+      setFile(dropped);
+      setError(null);
+      if (!filename) setFilename(dropped.name.replace(/\.docx$/i, ''));
+    } else {
+      setError('Only .docx files are supported.');
+    }
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="flex min-h-screen items-center justify-center bg-zinc-50 p-4">
+      <main className="w-full max-w-lg rounded-2xl bg-white p-8 shadow-sm">
+        <h1 className="mb-1 text-2xl font-semibold text-zinc-900">Content Generator</h1>
+        <p className="mb-8 text-sm text-zinc-500">
+          Upload a .docx file to generate a .blade.php template.
+        </p>
+
+        {/* File upload */}
+        <div className="mb-5">
+          <label className="mb-1.5 block text-sm font-medium text-zinc-700">
+            Word document
+          </label>
+          <label
+            className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-8 transition-colors ${
+              file
+                ? 'border-zinc-400 bg-zinc-50'
+                : 'border-zinc-200 bg-zinc-50 hover:border-zinc-400'
+            }`}
+            onDrop={handleDrop}
+            onDragOver={e => e.preventDefault()}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+            {file ? (
+              <svg
+                className="h-8 w-8 text-green-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            ) : (
+              <svg
+                className="h-8 w-8 text-zinc-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+            )}
+            {file ? (
+              <span className="text-sm font-medium text-zinc-700">{file.name}</span>
+            ) : (
+              <span className="text-sm text-zinc-500">
+                Drag & drop or <span className="font-medium text-zinc-700">click to browse</span>
+              </span>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".docx"
+              className="hidden"
+              onChange={handleFileChange}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+          </label>
         </div>
+
+        {/* Filename input */}
+        <div className="mb-6">
+          <label className="mb-1.5 block text-sm font-medium text-zinc-700" htmlFor="filename">
+            Output filename
+          </label>
+          <div className="flex items-center rounded-xl border border-zinc-200 bg-white focus-within:border-zinc-400 focus-within:ring-1 focus-within:ring-zinc-400">
+            <input
+              id="filename"
+              type="text"
+              value={filename}
+              onChange={e => setFilename(e.target.value)}
+              placeholder="e.g. best-broadband-deals"
+              className="flex-1 rounded-xl bg-transparent px-3 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400"
+            />
+            <span className="pr-3 text-sm text-zinc-400">.blade.php</span>
+          </div>
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+        )}
+
+        {/* Submit */}
+        <button
+          onClick={handleConvert}
+          disabled={loading}
+          className="w-full rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {loading ? 'Converting…' : 'Convert & Download'}
+        </button>
       </main>
     </div>
   );

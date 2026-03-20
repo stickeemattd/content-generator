@@ -71,6 +71,7 @@ Current behavior:
 
 This README is based on the current implementation, so these limitations are worth knowing before you use it heavily:
 
+- for this to work consistently, we need Goco Content Writers to confirm to a spec we send
 - only `.docx` files are supported
 - link text is preserved, but link URLs are not currently carried through; generated links use empty `href` values
 - inline formatting such as bold, italic, underline, and custom classes is not preserved
@@ -80,7 +81,7 @@ This README is based on the current implementation, so these limitations are wor
 
 ## Typical Use Case
 
-This is useful when a content team writes article copy in Word, but the engineering or publishing workflow needs that content delivered as Blade markup inside a consistent Laravel page template.
+We convert a significant amount of page content for Goco on their broadband and mobile sites.
 
 Instead of manually rebuilding headings, paragraphs, lists, and tables by hand, this tool gives you a structured first pass that can then be cleaned up or enhanced.
 
@@ -90,7 +91,7 @@ Instead of manually rebuilding headings, paragraphs, lists, and tables by hand, 
 - [`app/api/convert/route.ts`](/home/matt/Public/code/comparisondev/content-generator/app/api/convert/route.ts) handles the conversion request
 - [`app/lib/docx-parser.ts`](/home/matt/Public/code/comparisondev/content-generator/app/lib/docx-parser.ts) parses the Word document into blocks
 - [`app/lib/blade-generator.ts`](/home/matt/Public/code/comparisondev/content-generator/app/lib/blade-generator.ts) renders parsed blocks into Blade-compatible output
-- [`app/example-files`](/home/matt/Public/code/comparisondev/content-generator/app/example-files) contains example Blade files
+- [`app/example-files`](/home/matt/Public/code/comparisondev/content-generator/app/example-files) contains example Blade files used to train coplit on what to build
 
 ## Scripts
 
@@ -113,8 +114,7 @@ npm run lint
 
 Useful next steps if this project grows:
 
-- preserve real hyperlink destinations
-- support more Word formatting
+- preserve real hyperlink destinations by differentiating between internal and external examples
+- add support for both app.layout and static.layout blades
 - make the Blade wrapper configurable
 - add automated tests for sample `.docx` inputs
-- support custom output templates per content type
